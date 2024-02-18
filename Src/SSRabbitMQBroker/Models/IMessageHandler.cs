@@ -1,7 +1,7 @@
 ﻿namespace SSRabbitMQBroker
 {
     public interface IMessageHandler<T>
-        where T : IMessage
+        where T : Message
     {
         Task ProcessAsync(T message, CancellationToken cancellationToken);
     }

@@ -8,22 +8,35 @@ using var provider = new RabbitMQProvider(new RabbitMQProviderOptions<RabbitMQPr
     ClientName = "client",
     ConnectionFactory = new ConnectionFactory
     {
-        Uri = new Uri("amqp://guest:guest@localhost:5672")
+        Uri = new Uri("amqp://guest:guest@localhost:5672"),
+        DispatchConsumersAsync = true
     },
     Logger = loggerFactory.CreateLogger<RabbitMQProvider>(),
     RetryCount = 5
 });
 
-var broker = new RabbitMQBroker(new()
-{
-    Provider = provider,
-    Logger = loggerFactory.CreateLogger<RabbitMQBroker>(),
-    ExpirationTime  = TimeSpan.FromHours(2),
-});
+var publisher = new RabbitMQPublisher(
+    loggerFactory.CreateLogger<RabbitMQPublisher>(),
+    new()
+    {
+        Provider = provider,
+        RetryCount = 5,
+        ExpirationTime = TimeSpan.FromHours(2),
+    });
+publisher.InitializeChannel();
 
-for (int i = 0; i < 100; i++)
+do
 {
-    broker.Publish(new EchoMessage($"Hello, World! {i}"));
+    for (int i = 0; i < 100; i++)
+    {
+        if (i % 2 == 0)
+        {
+            publisher.Publish(new EchoMessage($"Hello, World!"));
+        }
+        else
+        {
+            publisher.Publish(new ProgressMessage($"Title {i}", i % 5 == 0));
+        }
+    }
 }
-
-Console.WriteLine("Hello, World!");
+while (Console.ReadLine() != "close");
